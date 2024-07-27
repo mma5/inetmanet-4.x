@@ -103,6 +103,15 @@ void MacProtocolBase::dropCurrentTxFrame(PacketDropDetails& details)
     delete currentTxFrame;
     currentTxFrame = nullptr;
 }
+void MacProtocolBase::popTxQueue()
+{
+    if (currentTxFrame != nullptr)
+        throw cRuntimeError("Model error: incomplete transmission exists");
+    ASSERT(txQueue != nullptr);
+    currentTxFrame = txQueue->dequeuePacket();
+    currentTxFrame->setArrival(getId(), upperLayerInGateId, simTime());
+    take(currentTxFrame);
+}
 
 void MacProtocolBase::flushQueue(PacketDropDetails& details)
 {

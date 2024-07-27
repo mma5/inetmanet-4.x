@@ -35,7 +35,8 @@ network LoRaNetworkTest
         int numberOfGateways = default(1);
         int networkSizeX = default(500);
         int networkSizeY = default(500);
-        @display("bgb=355.824,356.832");
+        @display("bgb=2000,2000");
+       // @display("bgb=355.824,356.832");
     submodules:
         visualizer: <default(firstAvailableOrEmpty("IntegratedVisualizer"))> like IIntegratedVisualizer if typename != "" {
             parameters:

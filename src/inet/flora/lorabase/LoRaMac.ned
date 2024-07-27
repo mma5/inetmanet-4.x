@@ -24,6 +24,25 @@ import inet.linklayer.csmaca.CsmaCaMac;
 module LoRaMac extends CsmaCaMac
 {
     parameters:
+        string classUsed  = default("A");
+        
+           // RX1 RX2 receive windows parameters
+        int waitDelay1Time = default(1);
+        int listening1Time = default(1);
+        int waitDelay2Time = default(1);
+        int listening2Time = default(1);
+        
+        // beacon parameters
+        double beaconStart = default(1);
+        double beaconPeriodTime = default(128);
+        double beaconReservedTime = default(2.120);
+        double beaconGuardTime = default(3);
+        
+        // class B parameters
+        double classBslotTime = default(0.030);
+        int timeToNextSlot = default(5);
+        int pingOffset = default(5);
+        
         bitrate = default(250kbps);
         @class(LoRaMac);
         gates:

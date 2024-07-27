@@ -39,6 +39,39 @@ void LoRaGWMac::initialize(int stage)
         radio = check_and_cast<IRadio *>(radioModule);
         waitingForDC = false;
         dutyCycleTimer = new cMessage("Duty Cycle Timer");
+        beaconPeriod = new cMessage("Beacon Timer");
+                endTXslot = new cMessage("UplinkSlot_End");
+                beaconGuardStart = new cMessage("Beacon_Guard_Start");
+                beaconReservedEnd = new cMessage("Beacon_Reserved_End");
+
+                // beacon parameters
+                beaconStart = par("beaconStart");
+                beaconPeriodTime = par("beaconPeriodTime");
+                beaconReservedTime = par("beaconReservedTime");
+                beaconGuardTime = par("beaconGuardTime");
+
+                pingNumber = par("pingNumber");
+
+                // lora parameters for beacon
+                        beaconSF = par("beaconSF");
+                        beaconTP = par("beaconTP");
+                        beaconCF = par("beaconCF");
+                        beaconBW = par("beaconBW");
+                        beaconCR = par("beaconCR");
+
+                        // schedule beacon when using class B or S
+                                const char *usedClass = par("classUsed");
+                                if (strcmp(usedClass,"A"))
+                                {
+                                    EV<<"LoRaGWMac:: line 105 "<< usedClass<<endl;
+                                    scheduleAt(simTime() + beaconStart, beaconPeriod);
+                                    isClassA = false;
+
+                                    if (!strcmp(usedClass,"B"))
+                                        isClassB = true;
+                                }
+
+
         const char *addressString = par("address");
         GW_forwardedDown = 0;
         GW_droppedDC = 0;
@@ -62,6 +95,10 @@ void LoRaGWMac::finish()
     recordScalar("GW_droppedDC", GW_droppedDC);
     cancelAndDelete(dutyCycleTimer);
     dutyCycleTimer = nullptr;
+    cancelAndDelete(beaconPeriod);
+        cancelAndDelete(endTXslot);
+        cancelAndDelete(beaconGuardStart);
+        cancelAndDelete(beaconReservedEnd);
 }
 
 LoRaGWMac::~LoRaGWMac() {
@@ -101,6 +138,22 @@ void LoRaGWMac::configureNetworkInterface()
 
 void LoRaGWMac::handleSelfMessage(cMessage *msg)
 {
+    if (msg == beaconPeriod)
+        {
+        EV << "beacon msg is released" << endl;
+
+            beaconNumber++;
+            beaconGuard = false;
+            beaconScheduling();
+            sendBeacon();
+        }
+    if (msg == beaconGuardStart)
+        {
+        EV << "beaconGuardStart msg is released" << endl;
+            beaconGuard = true;
+          //  if (isClassS)
+               // cancelEvent(endTXslot);
+        }
     if(msg == dutyCycleTimer) waitingForDC = false;
 }
 
@@ -172,7 +225,42 @@ void LoRaGWMac::createFakeLoRaMacFrame()
 {
 
 }
+// schedule beacon signals
+void LoRaGWMac::beaconScheduling()
+{
+    scheduleAt(simTime() + beaconPeriodTime, beaconPeriod);
+    scheduleAt(simTime() + beaconReservedTime, beaconReservedEnd);
+    scheduleAt(simTime() + beaconPeriodTime - beaconGuardTime, beaconGuardStart);
+}
+//this function send beacon message when the class is set to B or S
+void LoRaGWMac::sendBeacon()
+{
+    EV << "sending Beacon" << endl;
 
+    auto beacon = new Packet("Beacon");
+    auto frame = makeShared<LoRaMacFrame>();
+    frame->setPktType(BEACON);
+    frame->setChunkLength(B(par("headerLength").intValue()));
+    auto tag = beacon->addTagIfAbsent<MacAddressReq>();
+    tag->setDestAddress(MacAddress::BROADCAST_ADDRESS);
+    beacon->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::apskPhy);
+
+    units::values::Hz loRaBW = inet::units::values::Hz(beaconBW);
+    units::values::Hz loRaCF = inet::units::values::Hz(beaconCF);
+
+    frame->setLoRaSF(beaconSF);
+    frame->setLoRaTP(beaconTP);
+    frame->setLoRaBW(loRaBW);
+    frame->setLoRaCF(loRaCF);
+
+    frame->setBeaconTimer(beaconPeriodTime);
+    frame->setPingNb(pingNumber);
+
+    beacon->insertAtFront(frame);
+    sendDown(beacon);
+    if (hasGUI())
+        getParentModule()->getParentModule()->bubble(beaconSentText);
+}
 void LoRaGWMac::receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details)
 {
     Enter_Method_Silent();

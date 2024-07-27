@@ -16,8 +16,11 @@
 #include "inet/flora/loraapp/SimpleLoRaApp.h"
 
 #include "inet/flora/lorabase/LoRaTagInfo_m.h"
-#include "inet/mobility/static/StationaryMobility.h"
+//#include "inet/mobility/static/StationaryMobility.h"
 #include "inet/common/packet/Packet.h"
+//#include "inet/mobility/static/StationaryMobility.h"
+#include "inet/mobility/single/RandomWaypointMobility.h"
+//#include "inet/mobility/single/GaussMarkovMobility.h"
 
 
 
@@ -35,7 +38,11 @@ void SimpleLoRaApp::initialize(int stage)
         // Generate random location for nodes if circle deployment type
         if (strcmp(host->par("deploymentType").stringValue(), "circle")==0) {
            coordsValues = generateUniformCircleCoordinates(host->par("maxGatewayDistance").doubleValue(), host->par("gatewayX").doubleValue(), host->par("gatewayY").doubleValue());
-           StationaryMobility *mobility = check_and_cast<StationaryMobility *>(host->getSubmodule("mobility"));
+           //StationaryMobility *mobility = check_and_cast<StationaryMobility *>(host->getSubmodule("mobility"));
+            RandomWaypointMobility *mobility = check_and_cast<RandomWaypointMobility *>(host->getSubmodule("mobility"));
+
+          // GaussMarkovMobility *mobility = check_and_cast<GaussMarkovMobility *>(host->getSubmodule("mobility"));
+
            mobility->par("initialX").setDoubleValue(coordsValues.first);
            mobility->par("initialY").setDoubleValue(coordsValues.second);
         }
@@ -99,7 +106,10 @@ std::pair<double,double> SimpleLoRaApp::generateUniformCircleCoordinates(double 
 void SimpleLoRaApp::finish()
 {
     cModule *host = getContainingNode(this);
-    StationaryMobility *mobility = check_and_cast<StationaryMobility *>(host->getSubmodule("mobility"));
+    //StationaryMobility *mobility = check_and_cast<StationaryMobility *>(host->getSubmodule("mobility"));
+   RandomWaypointMobility *mobility = check_and_cast<RandomWaypointMobility *>(host->getSubmodule("mobility"));
+  //GaussMarkovMobility *mobility = check_and_cast<GaussMarkovMobility *>(host->getSubmodule("mobility"));
+
     Coord coord = mobility->getCurrentPosition();
     recordScalar("positionX", coord.x);
     recordScalar("positionY", coord.y);
@@ -184,7 +194,7 @@ void SimpleLoRaApp::sendJoinRequest()
 {
     auto pktRequest = new Packet("DataFrame");
     pktRequest->setKind(DATA);
-
+    EV<<" 187 sendJoinRequest "<<endl;
     auto payload = makeShared<LoRaAppPacket>();
     payload->setChunkLength(B(par("dataSize").intValue()));
 
@@ -220,7 +230,10 @@ void SimpleLoRaApp::sendJoinRequest()
     sfVector.record(loRaSF);
     tpVector.record(loRaTP);
     pktRequest->insertAtBack(payload);
+    EV<<" 223 sendJoinRequest "<<endl;
     send(pktRequest, "appOut");
+    EV<<" 225 sendJoinRequest "<<endl;
+
     if(evaluateADRinNode)
     {
         ADR_ACK_CNT++;

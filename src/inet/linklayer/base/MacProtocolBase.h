@@ -50,6 +50,7 @@ class INET_API MacProtocolBase : public LayeredProtocolBase, public cListener
 
     virtual void deleteCurrentTxFrame();
     virtual void dropCurrentTxFrame(PacketDropDetails& details);
+    virtual void popTxQueue();
 
     virtual void handleMessageWhenDown(cMessage *msg) override;
 

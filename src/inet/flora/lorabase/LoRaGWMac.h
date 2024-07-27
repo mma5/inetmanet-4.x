@@ -46,10 +46,44 @@ public:
     virtual void handleSelfMessage(cMessage *message) override;
 
     void sendPacketBack(Packet *receivedFrame);
+    void beaconScheduling();
+    void sendBeacon();
     void createFakeLoRaMacFrame();
     virtual MacAddress getAddress();
 
 protected:
+
+    const char beaconSentText[13] = "Beacon sent!";
+
+    bool isClassA = true;
+    bool isClassB = false;
+    bool beaconGuard = false;
+    int beaconNumber = -1;
+        int pingNumber;
+
+        int beaconSF;
+        int beaconCR = -1;
+        double beaconTP;
+        double beaconCF;
+        double beaconBW;
+
+        simtime_t beaconStart = -1;
+        simtime_t beaconGuardTime = -1;
+        simtime_t beaconReservedTime = -1;
+        double beaconPeriodTime = -1;
+
+    /** End of the beacon period */
+        cMessage *beaconPeriod = nullptr;
+
+        /** End of the beacon reserved period */
+        cMessage *beaconReservedEnd = nullptr;
+
+        /** Start of the beacon guard period */
+        cMessage *beaconGuardStart = nullptr;
+
+        /** End of uplink transmission slot */
+        cMessage *endTXslot = nullptr;
+
     MacAddress address;
 
     IRadio *radio = nullptr;

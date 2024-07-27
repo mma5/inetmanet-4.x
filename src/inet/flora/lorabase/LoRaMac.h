@@ -49,7 +49,22 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
     int cwMax = -1;
     int cwMulticast = -1;
     int sequenceNumber = 0;
+    int lastSentSequenceNumber = 0;
+
+    bool isClassA = true;
+    bool isClassB = false;
+    bool beaconGuard = false;
+    bool iGotBeacon = false;
     //@}
+
+    simtime_t beaconStart = 1;
+    simtime_t beaconGuardTime = -1;
+    simtime_t beaconReservedTime = -1;
+    simtime_t beaconPeriodTime = -1;
+
+    simtime_t timeToNextSlot = -1;
+    simtime_t classBslotTime = -1;
+    int pingOffset = -1;
 
     /** End of the Short Inter-Frame Time period */
     cMessage *endSifs = nullptr;
@@ -71,12 +86,18 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
     enum State {
         IDLE,
         TRANSMIT,
+        BEACON_RECEPTION,
+        WAIT_DELAY,
+        PING_SLOT,
+        RECEIVING_BEACON,
+        RECEIVING,
         WAIT_DELAY_1,
         LISTENING_1,
         RECEIVING_1,
         WAIT_DELAY_2,
         LISTENING_2,
         RECEIVING_2,
+        UPLINK_SLOT,
     };
 
     IRadio *radio = nullptr;
@@ -123,6 +144,27 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
 
     /** Radio state change self message. Currently this is optimized away and sent directly */
     cMessage *mediumStateChange = nullptr;
+
+    /** End of the ping slot period. Start new downlink listening slot */
+    cMessage *pingPeriod = nullptr;
+
+    /** End of downlink listening slot */
+    cMessage *endPingSlot = nullptr;
+
+    /** End of the beacon period. Start new beacon listening slot */
+    cMessage *beaconPeriod = nullptr;
+
+    /** End of the beacon listening slot */
+    cMessage *beaconReservedEnd = nullptr;
+
+    /** Start of the beacon guard period */
+    cMessage *beaconGuardStart = nullptr;
+
+    /** End of the beacon guard period */
+    cMessage *beaconGuardEnd = nullptr;
+
+    /** Start of uplink transmission slot */
+    cMessage *beginTXslot= nullptr;
     //@}
 
     /** @name Statistics */
@@ -135,8 +177,9 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
     long numReceived;
     long numSentBroadcast;
     long numReceivedBroadcast;
+    long numReceivedBeacons;
     //@}
-
+    const char beaconReceivedText[17] = "Beacon received!";
   public:
     /**
      * @name Construction functions
@@ -166,7 +209,8 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
      */
     //@{
     virtual void handleSelfMessage(cMessage *msg) override;
-    virtual void handleUpperPacket(Packet *packet) override;
+    virtual void handleUpperPacket(Packet *packet) override;//cMessage *msg) override;
+    //virtual void handleUpperPacket(Packet *packet) override;
     virtual void handleLowerPacket(Packet *packet) override;
     virtual void handleWithFsm(cMessage *msg);
 
@@ -205,6 +249,13 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
     void turnOnReceiver(void);
     void turnOffReceiver(void);
     virtual void processUpperPacket();
+    virtual void beaconScheduling();
+    virtual void schedulePingPeriod();
+    virtual void calculatePingPeriod(const Ptr<const LoRaMacFrame> &frame);
+    virtual int aesEncrypt(unsigned char *message, int message_len, unsigned char *key, unsigned char *cipher);
+    virtual void increaseBeaconTime();
+    virtual bool isBeacon(const Ptr<const LoRaMacFrame> &frame);
+
     //@}
 };
 

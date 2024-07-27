@@ -25,6 +25,13 @@ import inet.linklayer.common.MacAddress;
 
 namespace inet::flora;
 
+enum MacFrameType
+{
+    OTHER = 1;
+    BEACON = 2;
+    UPLINK = 3;
+    DOWNLINK = 4;
+}
 enum LoraMacHeaderType {
     LORA_DATA = 1;
     LORA_ACK = 2;
@@ -35,6 +42,8 @@ class LoRaMacFrame extends FieldsChunk {
     MacAddress transmitterAddress;
     MacAddress receiverAddress;
     LoraMacHeaderType type = LORA_DATA;
+    
+    int pktType @enum(MacFrameType);
 
     int sequenceNumber;
     double LoRaTP;
@@ -45,4 +54,10 @@ class LoRaMacFrame extends FieldsChunk {
     bool LoRaUseHeader;
     double RSSI;
     double SNIR;
+    
+    int BeaconTimer = 128;
+    int PingNb = 4;
+    int PingPeriod = 32;
+    int PingOffset;
+    int BeaconTime;
 }

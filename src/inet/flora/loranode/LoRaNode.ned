@@ -20,6 +20,9 @@ import inet.networklayer.common.InterfaceTable;
 import inet.flora.lorabase.LoRaNic;
 import inet.flora.loraapp.SimpleLoRaApp;
 import inet.mobility.contract.IMobility;
+import inet.mobility.static.StationaryMobility;
+import inet.mobility.single.RandomWaypointMobility;
+import inet.mobility.single.GaussMarkovMobility;
 
 
 module LoRaNode
@@ -38,9 +41,12 @@ module LoRaNode
         interfaceTable: InterfaceTable {
             @display("p=30,26");
         }
-        mobility: <default("StationaryMobility")> like IMobility {
-             @display("p=24,88");
+        mobility: RandomWaypointMobility { //RandomWaypointMobility {//StationaryMobility {//GaussMarkovMobility{
+            @display("p=24,88");
         }
+       // mobility: <default("StationaryMobility")> like IMobility {
+          //   @display("p=24,88");
+       // }
         LoRaNic: LoRaNic {
             @display("p=137,239");
         }
