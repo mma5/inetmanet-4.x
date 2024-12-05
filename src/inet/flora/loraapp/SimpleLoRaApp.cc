@@ -56,6 +56,9 @@ void SimpleLoRaApp::initialize(int stage)
         loRaUseHeader = par("initialUseHeader");
         evaluateADRinNode = par("evaluateADRinNode");
         numberOfPacketsToSend = par("numberOfPacketsToSend");
+
+
+
     }
     else if (stage == INITSTAGE_APPLICATION_LAYER) {
         bool isOperational;
@@ -85,7 +88,13 @@ void SimpleLoRaApp::initialize(int stage)
         //LoRa physical layer parameters
         sfVector.setName("SF Vector");
         tpVector.setName("TP Vector");
+
+    // subscribe to LoRaMac::signalSFchanged signal
+        LoRaMacModule =getContainingNode(this);
+        LoRaMacModule->subscribe(LoRaMac::signalSFchanged, this);
+
     }
+
 }
 
 std::pair<double,double> SimpleLoRaApp::generateUniformCircleCoordinates(double radius, double gatewayX, double gatewayY)
@@ -250,6 +259,19 @@ void SimpleLoRaApp::sendJoinRequest()
 void SimpleLoRaApp::increaseSFIfPossible()
 {
     if(loRaSF < 12) loRaSF++;
+}
+void SimpleLoRaApp::receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details)
+{
+    Enter_Method_Silent();
+       if (signalID == LoRaMac::signalSFchanged) {
+           EV<<"signal recevied 265"<<endl;
+           EV<<" shshshsh "<<value <<endl;
+           if (!evaluateADRinNode){
+               EV<<"about to reset the SF "<<endl;
+               loRaSF= value;
+           }
+           EV<<"Skipped the condition"<<endl;
+       }
 }
 
 } //end namespace inet

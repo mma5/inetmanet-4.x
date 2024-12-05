@@ -13,6 +13,7 @@
 #include "inet/queueing/contract/IPacketQueue.h"
 #include "inet/linklayer/contract/IMacProtocol.h"
 
+
 namespace inet {
 namespace flora {
 
@@ -181,6 +182,9 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
     //@}
     const char beaconReceivedText[17] = "Beacon received!";
   public:
+
+    static simsignal_t signalSFchanged;
+
     /**
      * @name Construction functions
      */
@@ -255,6 +259,7 @@ class LoRaMac : public MacProtocolBase, public IMacProtocol, public queueing::IA
     virtual int aesEncrypt(unsigned char *message, int message_len, unsigned char *key, unsigned char *cipher);
     virtual void increaseBeaconTime();
     virtual bool isBeacon(const Ptr<const LoRaMacFrame> &frame);
+    virtual int sfBasedOnRSSI(double x);
 
     //@}
 };

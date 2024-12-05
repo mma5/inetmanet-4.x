@@ -39,12 +39,14 @@ public:
   static simsignal_t symbolErrorRateSignal;
   static simsignal_t droppedPacket;
 
+
 protected:
   /**
    * An identifier which is globally unique for the whole lifetime of the
    * simulation among all radios.
    */
   double currentTxPower;
+  double signalRSSI_dBm_toPassUp;
 
 private:
   void parseRadioModeSwitchingTimes();

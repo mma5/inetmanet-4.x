@@ -34,6 +34,7 @@ namespace inet {
 namespace flora {
 
 Define_Module(LoRaMac);
+simsignal_t LoRaMac::signalSFchanged = cComponent::registerSignal("signalSFchanged");
 
 LoRaMac::~LoRaMac()
 {
@@ -281,11 +282,16 @@ void LoRaMac::handleUpperPacket(Packet *packet)//cMessage *msg)
 
 void LoRaMac::handleLowerPacket(Packet *msg)
 {
+
     if( (fsm.getState() == RECEIVING_1) || (fsm.getState() == RECEIVING_2) ||
             (fsm.getState()== RECEIVING) || (fsm.getState()==RECEIVING_BEACON) )
     {
         const auto &frame = msg->peekAtFront<LoRaMacFrame>();
-
+        auto tag = msg->getTag<LoRaTag>();
+        EV<<"Tag:: "<<tag->getSignalRSSI_dBm()<<endl;
+        int sfToPassUp=sfBasedOnRSSI(tag->getSignalRSSI_dBm());
+        EV<<"value of sfToPassUp is :"<<sfToPassUp<<endl;
+        emit(LoRaMac::signalSFchanged, sfToPassUp);
         if (isBeacon(frame))
                       {
                           int ping = pow(2,12)/frame->getPingNb();
@@ -953,6 +959,18 @@ bool LoRaMac::isAck(const Ptr<const LoRaMacFrame> &frame)
 bool LoRaMac::isBeacon(const Ptr<const LoRaMacFrame> &frame)
 {
     return frame->getPktType() == BEACON;
+}
+int LoRaMac::sfBasedOnRSSI(double x)
+{
+    int calculatedSF=0;
+    if ((x >= -137 && x < -134.5) || x <-137 ) calculatedSF=12;//if ((MaxRSSIinGW >= -137 && MaxRSSIinGW < -135) || MaxRSSIinGW <-137 ) calculatedSF=12;
+              if (x >= -134.5 && x < -132) calculatedSF=11; // if (MaxRSSIinGW >= -135 && MaxRSSIinGW < -133) calculatedSF=11;//
+              if (x >= -132 && x < -129) calculatedSF=10;//if (MaxRSSIinGW >= -133 && MaxRSSIinGW < -130) calculatedSF=10; //
+              if (x >= -129 && x < -126) calculatedSF=9;//if (MaxRSSIinGW >= -130 && MaxRSSIinGW < -127) calculatedSF=9;//
+              if (x >= -126 && x < -123) calculatedSF=8;//if (MaxRSSIinGW >= -127 && MaxRSSIinGW < -124) calculatedSF=8;//
+              if (x > -123) calculatedSF=7; //if (MaxRSSIinGW > -124) calculatedSF=7;//
+         EV<<"After: calculatedSF is "<<calculatedSF<<endl;
+         return calculatedSF;
 }
 bool LoRaMac::isBroadcast(const Ptr<const LoRaMacFrame> &frame)
 {

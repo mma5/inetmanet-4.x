@@ -27,5 +27,6 @@ class LoRaTag extends TagBase
     int spreadFactor = 12;
     W power = mW(100);
     bool UseHeader = true;
-    int codeRendundance = 1;    
+    int codeRendundance = 1;  
+    double signalRSSI_dBm=0.00;  
 }

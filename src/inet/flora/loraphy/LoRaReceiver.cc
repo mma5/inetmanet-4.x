@@ -22,6 +22,8 @@
 #include "inet/common/ProtocolTag_m.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/physicallayer/wireless/common/radio/packetlevel/Reception.h"
+//#include "inet/flora/lorabase/LoRaRadio.h"
+
 
 namespace inet {
 
@@ -85,6 +87,7 @@ void LoRaReceiver::finish()
 
 bool LoRaReceiver::computeIsReceptionPossible(const IListening *listening, const ITransmission *transmission) const
 {
+    EV<<"LoRaReceiver@88"<<endl;
     const LoRaTransmission *loRaTransmission = dynamic_cast<const LoRaTransmission *>(transmission);
     if (loRaTransmission == nullptr) // it is not a lora transmission reject it
         return false;
@@ -99,14 +102,21 @@ bool LoRaReceiver::computeIsReceptionPossible(const IListening *listening, const
 
 bool LoRaReceiver::computeIsReceptionPossible(const IListening *listening, const IReception *reception, IRadioSignal::SignalPart part) const
 {
+    EV<<"LoRaReceiver@103"<<endl;
     auto loRaReception = dynamic_cast<const LoraScalarReceptionAnalogModel *>(reception->getAnalogModel());
     if (loRaReception == nullptr) // it is not a lora reception
+    {
         return false;
+    }
 
+            auto temPacket = reception->getTransmission()->getPacket();
+            EV<<" type is "<<temPacket->getName()<<endl;
     //here we can check compatibility of LoRaTx parameters (or beeing a gateway) and reception above sensitivity level
     const LoRaBandListening *loRaListening = check_and_cast<const LoRaBandListening *>(listening);
-
-    if (iAmGateway == false && (loRaListening->getLoRaCF() != loRaReception->getLoRaCF() || loRaListening->getLoRaBW() != loRaReception->getLoRaBW() || loRaListening->getLoRaSF() != loRaReception->getLoRaSF())) {
+    EV<<"Value of loRaListening->getLoRaSF() is "<<loRaListening->getLoRaSF()<<endl;
+    EV<<"Value of loRaReception->getLoRaSF() is "<<loRaReception->getLoRaSF()<<endl;
+    if (iAmGateway == false && (loRaListening->getLoRaCF() != loRaReception->getLoRaCF() || loRaListening->getLoRaBW() != loRaReception->getLoRaBW() || (loRaListening->getLoRaSF() != loRaReception->getLoRaSF() && strcmp(temPacket->getName(), "Beacon") ))) {//&& !strcmp(temPacket->getName(), "Beacon")
+        EV<<"LoRaReceiver@113 inside if"<<endl;
         return false;
     } else {
         W minReceptionPower = loRaReception->computeMinPower(reception->getStartTime(part), reception->getEndTime(part));
@@ -122,6 +132,7 @@ bool LoRaReceiver::computeIsReceptionPossible(const IListening *listening, const
 
 bool LoRaReceiver::computeIsReceptionAttempted(const IListening *listening, const IReception *reception, IRadioSignal::SignalPart part, const IInterference *interference) const
 {
+    EV<<"LoRaReceiver@128"<<endl;
     auto loRaReception = dynamic_cast<const LoraScalarReceptionAnalogModel *>(reception->getAnalogModel());
     if (loRaReception == nullptr)
         return false; // a non lora packet, ignore it
@@ -159,6 +170,7 @@ bool LoRaReceiver::computeIsReceptionAttempted(const IListening *listening, cons
 
 bool LoRaReceiver::isPacketCollided(const IReception *reception, IRadioSignal::SignalPart part, const IInterference *interference) const
 {
+    EV<<"LoRaReceiver@166"<<endl;
     //auto radio = reception->getReceiver();
     //auto radioMedium = radio->getMedium();
     auto interferingReceptions = interference->getInterferingReceptions();
@@ -247,6 +259,7 @@ bool LoRaReceiver::isPacketCollided(const IReception *reception, IRadioSignal::S
 
 const IReceptionDecision *LoRaReceiver::computeReceptionDecision(const IListening *listening, const IReception *reception, IRadioSignal::SignalPart part, const IInterference *interference, const ISnir *snir) const
 {
+    EV<<"LoRaReceiver@255"<<endl;
     auto isReceptionPossible = computeIsReceptionPossible(listening, reception, part);
     auto isReceptionAttempted = isReceptionPossible && computeIsReceptionAttempted(listening, reception, part, interference);
     auto isReceptionSuccessful = isReceptionAttempted && computeIsReceptionSuccessful(listening, reception, part, interference, snir);
@@ -255,6 +268,7 @@ const IReceptionDecision *LoRaReceiver::computeReceptionDecision(const IListenin
 
 Packet *LoRaReceiver::computeReceivedPacket(const ISnir *snir, bool isReceptionSuccessful) const
 {
+    EV<<"LoRaReceiver@264"<<endl;
     auto transmittedPacket = snir->getReception()->getTransmission()->getPacket();
     auto receivedPacket = transmittedPacket->dup();
     receivedPacket->clearTags();
@@ -266,6 +280,7 @@ Packet *LoRaReceiver::computeReceivedPacket(const ISnir *snir, bool isReceptionS
 
 const IReceptionResult *LoRaReceiver::computeReceptionResult(const IListening *listening, const IReception *reception, const IInterference *interference, const ISnir *snir, const std::vector<const IReceptionDecision *> *decisions) const
 {
+    EV<<"LoRaReceiver@276"<<endl;
     bool isReceptionSuccessful = true;
     for (auto decision : *decisions)
         isReceptionSuccessful &= decision->isReceptionSuccessful();
@@ -293,12 +308,14 @@ const IReceptionResult *LoRaReceiver::computeReceptionResult(const IListening *l
 
 bool LoRaReceiver::computeIsReceptionSuccessful(const IListening *listening, const IReception *reception, IRadioSignal::SignalPart part, const IInterference *interference, const ISnir *snir) const
 {
+    EV<<"LoRaReceiver@304"<<endl;
     return true;
     //we don't check the SINR level, it is done in collision checking by P_threshold level evaluation
 }
 
 const IListening *LoRaReceiver::createListening(const IRadio *radio, const simtime_t startTime, const simtime_t endTime, const Coord &startPosition, const Coord &endPosition) const
 {
+    EV<<"LoRaReceiver@311"<<endl;
     if(iAmGateway == false) {
         if (loraApp) {
             auto loRaApp = check_and_cast<SimpleLoRaApp *>(loraApp);
@@ -315,6 +332,7 @@ const IListening *LoRaReceiver::createListening(const IRadio *radio, const simti
 
 const IListeningDecision *LoRaReceiver::computeListeningDecision(const IListening *listening, const IInterference *interference) const
 {
+    EV<<"LoRaReceiver@328"<<endl;
     auto receiver = listening->getReceiverRadio();
     auto radioMedium = receiver->getMedium();
     auto analogModel = radioMedium->getAnalogModel();
@@ -330,6 +348,7 @@ const IListeningDecision *LoRaReceiver::computeListeningDecision(const IListenin
 
 W LoRaReceiver::getSensitivityBwSf(const Hz &bandwidth, const int &Sf) const
 {
+    EV<<"LoRaReceiver@344"<<endl;
     W sensitivity = mW(math::dBmW2mW(-126.5));
     switch (Sf) {
     case 6:
@@ -394,6 +413,7 @@ W LoRaReceiver::getSensitivityBwSf(const Hz &bandwidth, const int &Sf) const
 
 W LoRaReceiver::getSensitivity(const LoraScalarReceptionAnalogModel *reception) const
 {
+    EV<<"LoRaReceiver@409"<<endl;
     //function returns sensitivity -- according to LoRa documentation, it changes with LoRa parameters
     //Sensitivity values from Semtech SX1272/73 datasheet, table 10, Rev 3.1, March 2017
     W sensitivity = getSensitivityBwSf(reception->getLoRaBW(), reception->getLoRaSF());
@@ -442,11 +462,13 @@ W LoRaReceiver::getSensitivity(const LoraScalarReceptionAnalogModel *reception) 
         if(reception->getLoRaBW() == Hz(500000)) sensitivity = W(math::dBmW2mW(-129) / 1000);
     }
 #endif
+    EV<<"LoRaReceiver:452 the value of sensitivity is: "<<sensitivity<<endl;
     return sensitivity;
 }
 
 W LoRaReceiver::getMinReceptionPower() const
 {
+    EV<<"LoRaReceiver@464"<<endl;
     if(iAmGateway) {
         return mW(math::dBmW2mW(-137));
     }

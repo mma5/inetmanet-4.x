@@ -53,7 +53,7 @@ simple LoRaGWMac extends MacProtocolBase like IMacProtocol
         double beaconTP = default(25);
         double beaconCF= default(868000000);
         double beaconBW = default(125000);
-        int beaconCR = default(1);
+        int beaconCR = default(4);//default(1);
         
         @class(LoRaGWMac);
         

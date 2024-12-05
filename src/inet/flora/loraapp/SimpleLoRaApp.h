@@ -23,6 +23,8 @@
 #include "inet/common/lifecycle/NodeStatus.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/lifecycle/LifecycleOperation.h"
+#include "inet/flora/lorabase/LoRaMac.h"
+
 
 using namespace omnetpp;
 
@@ -32,7 +34,7 @@ namespace flora{
 /**
  * TODO - Generated class
  */
-class INET_API SimpleLoRaApp : public cSimpleModule, public ILifecycle
+class INET_API SimpleLoRaApp : public cSimpleModule, public ILifecycle,public cListener
 {
     protected:
         virtual void initialize(int stage) override;
@@ -45,6 +47,8 @@ class INET_API SimpleLoRaApp : public cSimpleModule, public ILifecycle
         std::pair<double,double> generateUniformCircleCoordinates(double radius, double gatewayX, double gatewayY);
         virtual void sendJoinRequest();
         //virtual void sendDownMgmtPacket();
+        virtual void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;
+
 
         int numberOfPacketsToSend = 0;
         int sentPackets = 0;
@@ -59,7 +63,8 @@ class INET_API SimpleLoRaApp : public cSimpleModule, public ILifecycle
         //history of sent packets;
         cOutVector sfVector;
         cOutVector tpVector;
-
+// to be used for subscribing to LoRaMac::signalSFchanged
+        cModule *LoRaMacModule=nullptr;
 
         //variables to control ADR
         bool evaluateADRinNode;

@@ -47,6 +47,7 @@ void LoRaRadio::initialize(int stage)
     if (stage == INITSTAGE_LOCAL) {
         iAmGateway = par("iAmGateway").boolValue();
     }
+    signalRSSI_dBm_toPassUp=0;
 }
 
 LoRaRadio::~LoRaRadio() {
@@ -398,23 +399,34 @@ void LoRaRadio::decapsulate(Packet *packet) const
     tag->setPower(preamble->getPower());
     tag->setSpreadFactor(preamble->getSpreadFactor());
     tag->setUseHeader(preamble->getUseHeader());
+    tag->setSignalRSSI_dBm(signalRSSI_dBm_toPassUp);
 }
 
 void LoRaRadio::endReception(cMessage *timer)
 {
-
     auto part = (IRadioSignal::SignalPart)timer->getKind();
     auto signal = static_cast<WirelessSignal *>(timer->getControlInfo());
     auto arrival = signal->getArrival();
     auto reception = signal->getReception();
+    //the following is used to find the RSSI
+    auto loRaReception = dynamic_cast<const LoraScalarReceptionAnalogModel *>(reception->getAnalogModel());
+    W signalRSSI_w = loRaReception->getPower();
+    double signalRSSI_mw = signalRSSI_w.get()*1000;
+    signalRSSI_dBm_toPassUp = math::mW2dBmW(signalRSSI_mw);
+    EV << "signalRSSI_dBm is : "<<signalRSSI_dBm_toPassUp << endl;
+
     if (timer == receptionTimer && isReceiverMode(radioMode) && arrival->getEndTime() == simTime()) {
         auto transmission = signal->getTransmission();
+        EV<<"LoRaRadio@421"<<endl;
+
         // TODO: this would draw twice from the random number generator in isReceptionSuccessful: auto isReceptionSuccessful = medium->isReceptionSuccessful(this, transmission, part);
         auto isReceptionSuccessful = medium->getReceptionDecision(this, signal->getListening(), transmission, part)->isReceptionSuccessful();
         EV_INFO << "Reception ended: " << (isReceptionSuccessful ? "\x1b[1msuccessfully\x1b[0m" : "\x1b[1munsuccessfully\x1b[0m") << " for " << (IWirelessSignal *)signal << " " << IRadioSignal::getSignalPartName(part) << " as " << reception << endl;
         auto macFrame = medium->receivePacket(this, signal);
         take(macFrame);
         decapsulate(macFrame);
+
+
         if (isReceptionSuccessful)
             sendUp(macFrame);
         else {
@@ -514,6 +526,11 @@ void LoRaRadio::sendUp(Packet *macFrame)
     if (errorTag && !std::isnan(errorTag->getSymbolErrorRate()))
         emit(symbolErrorRateSignal, errorTag->getSymbolErrorRate());
     EV_INFO << "Sending up " << macFrame << endl;
+
+   // const auto &frame = macFrame->peekAtFront<LoRaMacFrame>();
+    //EV<<" 522 playing with macFrame contents"<<frame->getLoRaBW()<<endl;
+    //EV<<" 522 playing with macFrame contents"<<frame->getRSSI()<<endl;
+
     NarrowbandRadioBase::sendUp(macFrame);
     //send(macFrame, upperLayerOut);
 }
